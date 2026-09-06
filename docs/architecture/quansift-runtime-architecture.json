@@ -1,0 +1,406 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "QuansiftMarketData Runtime Architecture",
+    "output": "docs/architecture/quansift-runtime-architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/Quansift/QuansiftMarketData.jl",
+      "revision": "154ea4ce2dbe4d2bba022662ccee67e89a898b48"
+    },
+    "viewBox": [
+      1390,
+      700
+    ]
+  },
+  "components": [
+    {
+      "id": "scheduler",
+      "type": "backend",
+      "label": "quansift_scheduler",
+      "sublabel": "cron + stages",
+      "tag": "separate repo",
+      "pos": [
+        30,
+        80
+      ],
+      "size": [
+        140,
+        62
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/10-system-boundary.md"
+        },
+        {
+          "path": "docs/architecture/60-deployment-topology.md"
+        }
+      ]
+    },
+    {
+      "id": "tiingo",
+      "type": "external",
+      "label": "Tiingo API",
+      "sublabel": "EOD + fundamentals",
+      "pos": [
+        30,
+        290
+      ],
+      "size": [
+        140,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/api.jl"
+        },
+        {
+          "path": "docs/architecture/50-provider-and-retention-constraints.md"
+        }
+      ]
+    },
+    {
+      "id": "runtime_config",
+      "type": "security",
+      "label": "Config + Secrets",
+      "sublabel": "API key + sink config",
+      "pos": [
+        485,
+        80
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/config.jl"
+        }
+      ]
+    },
+    {
+      "id": "collection",
+      "type": "backend",
+      "label": "Collection Runtime",
+      "sublabel": "collect_* + HTTP client",
+      "pos": [
+        255,
+        290
+      ],
+      "size": [
+        140,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/api.jl"
+        },
+        {
+          "path": "src/sync.jl"
+        },
+        {
+          "path": "src/fundamental_sync.jl"
+        }
+      ]
+    },
+    {
+      "id": "normalization",
+      "type": "backend",
+      "label": "Validate + Normalize",
+      "sublabel": "canonical DataFrame",
+      "pos": [
+        485,
+        290
+      ],
+      "size": [
+        160,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/sync.jl"
+        },
+        {
+          "path": "src/fundamental_sync.jl"
+        },
+        {
+          "path": "src/results.jl"
+        }
+      ]
+    },
+    {
+      "id": "postgres_adapter",
+      "type": "backend",
+      "label": "PostgreSQL Adapter",
+      "sublabel": "upsert_* + migrations",
+      "pos": [
+        740,
+        290
+      ],
+      "size": [
+        140,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/db/postgres.jl"
+        },
+        {
+          "path": "src/db/migrations.jl"
+        }
+      ]
+    },
+    {
+      "id": "local_persistence",
+      "type": "database",
+      "label": "Local Persistence",
+      "sublabel": "Parquet + optional DuckDB",
+      "pos": [
+        485,
+        500
+      ],
+      "size": [
+        160,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/db/parquet.jl"
+        },
+        {
+          "path": "src/db/core.jl"
+        }
+      ]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "System PostgreSQL",
+      "sublabel": "authoritative, schema v3",
+      "brand": "postgresql",
+      "pos": [
+        965,
+        290
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/db/migrations.jl"
+        },
+        {
+          "path": "docs/architecture/20-data-model-and-persistence.md"
+        }
+      ]
+    },
+    {
+      "id": "spaces",
+      "type": "cloud",
+      "label": "DigitalOcean Spaces",
+      "sublabel": "full-history Parquet",
+      "brand": "digitalocean",
+      "tag": "scheduler-owned",
+      "pos": [
+        1200,
+        150
+      ],
+      "size": [
+        165,
+        62
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/10-system-boundary.md"
+        }
+      ]
+    },
+    {
+      "id": "managed_postgres",
+      "type": "database",
+      "label": "Managed PostgreSQL",
+      "sublabel": "rolling 3-year data",
+      "brand": "postgresql",
+      "tag": "scheduler-owned",
+      "pos": [
+        1200,
+        430
+      ],
+      "size": [
+        165,
+        62
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/10-system-boundary.md"
+        }
+      ]
+    },
+    {
+      "id": "consumers",
+      "type": "external",
+      "label": "QuantScreener / TATSU",
+      "sublabel": "downstream analytics",
+      "pos": [
+        1200,
+        600
+      ],
+      "size": [
+        165,
+        62
+      ],
+      "sources": [
+        {
+          "path": "AGENTS.md"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Scheduler-owned control plane",
+      "wraps": [
+        "scheduler"
+      ],
+      "pad": 18
+    },
+    {
+      "kind": "security-group",
+      "label": "Untrusted provider boundary",
+      "wraps": [
+        "tiingo"
+      ],
+      "pad": 18
+    },
+    {
+      "kind": "region",
+      "label": "QuansiftMarketData library process",
+      "wraps": [
+        "runtime_config",
+        "collection",
+        "normalization",
+        "postgres_adapter",
+        "local_persistence"
+      ],
+      "pad": 20
+    },
+    {
+      "kind": "security-group",
+      "label": "Durable data boundary",
+      "wraps": [
+        "postgres"
+      ],
+      "pad": 18
+    },
+    {
+      "kind": "region",
+      "label": "Scheduler-owned publication",
+      "wraps": [
+        "spaces",
+        "managed_postgres"
+      ],
+      "pad": 18
+    }
+  ],
+  "connections": [
+    {
+      "from": "scheduler",
+      "to": "collection",
+      "label": "cron / stage call",
+      "variant": "emphasis",
+      "toSide": "top",
+      "labelSegment": 0
+    },
+    {
+      "from": "runtime_config",
+      "to": "collection",
+      "label": "key + limits",
+      "variant": "security",
+      "toSide": "top",
+      "labelSegment": 0
+    },
+    {
+      "from": "tiingo",
+      "to": "collection",
+      "label": "HTTPS + token",
+      "variant": "emphasis"
+    },
+    {
+      "from": "collection",
+      "to": "normalization",
+      "label": "JSON payloads",
+      "variant": "emphasis"
+    },
+    {
+      "from": "normalization",
+      "to": "postgres_adapter",
+      "label": "writer callback",
+      "variant": "emphasis"
+    },
+    {
+      "from": "normalization",
+      "to": "local_persistence",
+      "label": "optional sink",
+      "variant": "dashed",
+      "labelDy": 96
+    },
+    {
+      "from": "postgres_adapter",
+      "to": "postgres",
+      "label": "LibPQ upsert",
+      "variant": "emphasis"
+    },
+    {
+      "from": "postgres",
+      "to": "spaces",
+      "label": "Parquet upload",
+      "variant": "dashed"
+    },
+    {
+      "from": "postgres",
+      "to": "managed_postgres",
+      "label": "rolling 3y publish",
+      "variant": "dashed"
+    },
+    {
+      "from": "managed_postgres",
+      "to": "consumers",
+      "label": "SQL",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 72
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Primary Path",
+      "items": [
+        "Scheduler calls collect_* stages; the HTTP client validates Tiingo payloads",
+        "Canonical DataFrames reach System PostgreSQL via writer callback + upsert_*",
+        "Scheduler snapshots PostgreSQL to Parquet for Spaces and Managed PostgreSQL"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Trust + Failure Controls",
+      "items": [
+        "Tiingo is untrusted; SyncFailure carries a category, is_quota_failure isolates quota",
+        "Secrets come from the environment; migrations hold an advisory lock and fail closed",
+        "Since 4.2.0 close_duckdb raises on a normal return path"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Ownership + Deployment",
+      "items": [
+        "Library: collection, normalization, PostgreSQL, Parquet, DuckDB primitives",
+        "Scheduler: cron, split retries, Spaces, rolling three-year Managed PostgreSQL",
+        "Production loads the Pkg cache pinned by the scheduler rev v4.2.1, never /opt/tiingojulia"
+      ]
+    }
+  ]
+}
